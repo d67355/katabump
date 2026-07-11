@@ -347,6 +347,40 @@ function getUsers() {
 async function dispatchCdpClick(page, x, y) {
     const client = await page.context().newCDPSession(page);
     try {
+        // === 点击前：模拟鼠标从随机偏移位置移动到目标坐标，耗时 1-3 秒 ===
+        const offsetX = (Math.random() - 0.5) * 200;  // ±100 像素随机偏移
+        const offsetY = (Math.random() - 0.5) * 200;
+        const startX = x + offsetX;
+        const startY = y + offsetY;
+
+        // 先移动到随机起始位置
+        await client.send('Input.dispatchMouseEvent', {
+            type: 'mouseMoved',
+            x: startX,
+            y: startY
+        });
+
+        // 分步移动到目标坐标，模拟人类轨迹
+        const moveDuration = 1000 + Math.random() * 2000; // 1-3 秒
+        const steps = Math.max(10, Math.floor(moveDuration / 50));
+        const deltaX = (x - startX) / steps;
+        const deltaY = (y - startY) / steps;
+
+        for (let i = 1; i <= steps; i++) {
+            const t = i / steps;
+            // 加入轻微曲线偏移，更像人类
+            const curveOffset = Math.sin(t * Math.PI) * (Math.random() * 10 - 5);
+            await client.send('Input.dispatchMouseEvent', {
+                type: 'mouseMoved',
+                x: startX + deltaX * i + curveOffset,
+                y: startY + deltaY * i + curveOffset
+            });
+            await new Promise(r => setTimeout(r, moveDuration / steps));
+        }
+
+        console.log(`>> 鼠标已移动到目标坐标 (${x.toFixed(2)}, ${y.toFixed(2)})，耗时 ${moveDuration.toFixed(0)}ms`);
+
+        // === 执行点击 ===
         await client.send('Input.dispatchMouseEvent', {
             type: 'mousePressed',
             x: x,
@@ -354,7 +388,7 @@ async function dispatchCdpClick(page, x, y) {
             button: 'left',
             clickCount: 1
         });
-        await new Promise(r => setTimeout(r, 50 + Math.random() * 100)); // 模拟人手点击延迟
+        await new Promise(r => setTimeout(r, 50 + Math.random() * 100));
         await client.send('Input.dispatchMouseEvent', {
             type: 'mouseReleased',
             x: x,
@@ -362,7 +396,13 @@ async function dispatchCdpClick(page, x, y) {
             button: 'left',
             clickCount: 1
         });
+
         console.log(`>> CDP 坐标 (${x.toFixed(2)}, ${y.toFixed(2)}) 点击已发送。`);
+
+        // === 点击后：等待 20 秒 ===
+        console.log(`>> 点击完成，等待 20 秒...`);
+        await new Promise(r => setTimeout(r, 20000));
+
         return true;
     } catch (e) {
         console.log('>> CDP 点击失败:', e.message);
