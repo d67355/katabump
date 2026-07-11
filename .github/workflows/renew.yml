@@ -17,19 +17,19 @@ jobs:
     steps:
     - uses: actions/checkout@v5
     
-    - name: Setup Node.js
+    - name: 安装 Node.js
       uses: actions/setup-node@v5
       with:
         node-version: '20'
         
-    - name: Install Dependencies
+    - name: 安装依赖
       run: |
         sudo apt-get update
         sudo apt-get install -y xvfb
         npm install
         npx playwright install-deps chrome
       
-    - name: Run Renew Script
+    - name: 运行续订脚本
       env:
         # 将 USERS_JSON 配置在 GitHub Repository Secrets 中
         # 格式: [{"username": "xxx", "password": "xxx"}, ...]
@@ -58,7 +58,7 @@ jobs:
           sleep 5
         done
 
-    - name: Upload Screenshots
+    - name: 上传屏幕截图
       if: always()
       uses: actions/upload-artifact@v6
       with:
